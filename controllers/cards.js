@@ -69,17 +69,17 @@ const removeCardLike = (req, res) => {
   const { cardId } = req.params;
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
     .then((card) => {
-      if (card) {
-        res.send(card);
-      } else {
+      if (!card) {
         res.status(ERROR_NOT_FOUND).send({ message: `Переданные данные некорректны` });
+      } else {
+      res.send(card)
       }
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
-      } else {
         res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message })
+      } else {
+        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
       }
     })
 };
