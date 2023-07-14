@@ -16,7 +16,7 @@ const createUser = (req, res) => {
   const { name, about, avatar } = req.body;
   User.create({ name, about, avatar })
     .then(user => {
-      res.send(user)
+      res.status(201).send(user);
     })
     .catch(err => {
       if (err.name === 'ValidationError') {
@@ -30,26 +30,21 @@ const createUser = (req, res) => {
 const getUserById = (req, res) => {
   const { userId } = req.params;
   User.findById(userId)
-    .then((user) => {
-      if (user) {
-        res.send(user);
-      } else {
-        res.status(ERROR_NOT_FOUND).send({ message: `Пользователь с указанным ID не найден ` });
-      }
-    })
-    .catch(err => {
-      if (err.name === 'ValidationError') {
-        res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message });
-      } else {
+    .orFail(() => new Error("Not Found"))
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err.name === "CastError") {
         res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
+      } if (err.message === "Not Found") {
+        res.status(ERROR_NOT_FOUND).send({ message: `Пользователь не найден` });
       }
+      res.status(ERROR_DEFAULT).sendsend({ message: `Произошла неизвестная ошибка`, err: err.message });
     });
 };
 
 const updateUserProfile = (req, res) => {
   const { name, about } = req.body;
   const userId = req.user._id; // Получаем _id пользователя из объекта req.user
-
   User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((user) => {
       if (user) {

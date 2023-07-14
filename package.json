@@ -9,16 +9,16 @@
     "lint": "npx eslint ."
   },
   "keywords": [],
-  "author": "",
+  "author": "Margarita Khalikova",
   "license": "ISC",
   "dependencies": {
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.27.5",
     "express": "^4.18.2",
     "mongoose": "^7.3.2"
   },
   "devDependencies": {
     "eslint": "^8.44.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.27.5",
     "nodemon": "^3.0.1"
   }
 }

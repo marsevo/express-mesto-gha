@@ -32,34 +32,34 @@ const createCard = (req, res) => {
 const removeCardById = (req, res) => {
   const { cardId } = req.params;
   Card.findByIdAndRemove(cardId)
-    .then((card) => {
-      if (card) {
-        res.send({ message: `Карточка удалена` });
-      } else {
-        res.status(ERROR_NOT_FOUND).send({ message: `Переданные данные некорректны` });
-      }
-    })
-    .catch((err) => {
+  .orFail(() => new Error("Not Found"))
+  .then((card) => res.send(card))
+  .catch((err) => {
+    if (err.name === "CastError") {
       res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
-    });
+      return;
+    } else if (err.name = "Not Found") {
+      res.status(ERROR_NOT_FOUND).send({ message: `Переданные данные некорректны` });
+      return;
+    } else {
+      res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message });
+    }
+  })
 };
 
 const putCardLike = (req, res) => {
   const userId = req.user._id;
   const { cardId } = req.params;
   Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
-    .then((card) => {
-      if (!card) {
+    .orFail(() => new Error("Not Found"))
+    .then((card) => res.send(card))
+    .catch((err) => {
+      if (err.name === "CastError") {
+        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
+      } else if (err.name = "Not Found") {
         res.status(ERROR_NOT_FOUND).send({ message: `Переданные данные некорректны` });
       } else {
-      res.send(card)
-      }
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message })
-      } else {
-        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
+        res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message });
       }
     })
 };
@@ -68,18 +68,15 @@ const removeCardLike = (req, res) => {
   const userId = req.user._id;
   const { cardId } = req.params;
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
-    .then((card) => {
-      if (!card) {
+    .orFail(() => new Error("Not Found"))
+    .then((card) => res.send(card))
+    .catch((err) => {
+      if (err.name === "CastError") {
+        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
+      } else if (err.name = "Not Found") {
         res.status(ERROR_NOT_FOUND).send({ message: `Переданные данные некорректны` });
       } else {
-      res.send(card)
-      }
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message })
-      } else {
-        res.status(ERROR_VALIDATION).send({ message: `Переданные данные некорректны` });
+        res.status(ERROR_DEFAULT).send({ message: `Произошла неизвестная ошибка`, err: err.message });
       }
     })
 };

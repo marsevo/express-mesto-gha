@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = require('./routes');
+const { ERROR_NOT_FOUND } = require('./errors/errors');
 
  const { PORT = 3000 } = process.env;
 
@@ -18,7 +19,7 @@ const router = require('./routes');
 
  app.use(router);
  app.use('/', (req, res) => {
-   res.status(404).send({ message: 'Что-то пошло не так...'});
+  res.status(ERROR_NOT_FOUND).send({ message: 'Что-то пошло не так...'});
   });
 
  mongoose.connect('mongodb://127.0.0.1:27017/mestodb', {
