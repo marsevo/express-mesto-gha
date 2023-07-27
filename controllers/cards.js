@@ -3,55 +3,76 @@ const ErrorNotFound = require('../errors/errorNotFound');
 const ErrorForbidden = require('../errors/errorForbidden.js');
 const Card = require('../models/card');
 
-// Функция для обработки операций с карточками
-const handleCardOperation = (operation) => (req, res, next) => {
-  const { cardId } = req.params;
-  const { _id: userId } = req.user;
-  operation(cardId, userId)
+
+// Функция для создания новой карточки
+const createCard = (req, res, next) => {
+  const { _id } = req.user;
+  const { name, link } = req.body;
+  Card.create({ name, link, owner: _id })
     .then((card) => res.send(card))
     .catch((err) => {
-      if (err.name === 'ValidationError' || err.name === 'CastError') {
+      if (err.name = "ValidationError") {
         next(new ErrorValidation(`Переданные данные некорректны`));
-      } else if (err.name === 'NotFoundError') {
-        next(new ErrorNotFound(err.message));
-      } else if (err.name === 'ForbiddenError') {
-        next(new ErrorForbidden(err.message));
       } else {
         next(err);
       }
     });
-};
-
-// Функция для создания новой карточки
-const createCard = (name, link, owner) => {
-  return Card.create({ name, link, owner });
-};
+}
 
 // Функция для удаления карточки по ID
 const removeCardById = (cardId, userId) => {
-  return Card.findById(cardId)
-    .orFail(() => new Error('Карточка для удаления не найдена'))
-    .then((card) => {
-      if (card.owner.toString() === userId) {
-        return card.deleteOne();
-      } else {
-        throw new Error('Чужую карточку удалить нельзя');
-      }
-    });
+  Card.findByIdAndRemove(req.params.cardId)
+  .orFail(() => new ErrorNotFound(`Карточка для удаления не найдена`))
+  .then((card) => {
+    if (card.owner.toString() === req.user._id) {
+      card.deleteOne(card)
+        .then((cards) => res.send(cards))
+        .catch(next)
+    } else {
+      throw new ErrorForbidden('Чужую карточку удалить нельзя')
+    }
+  })
+  .catch(next);
 };
 
 // Функция для установки лайка на карточке
 const putCardLike = (cardId, userId) => {
-  return Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
-    .orFail(() => new Error('Карточка не найдена'));
+  Card.findByIdAndUpdate(req.params.cardId, { $addToSet: { likes: req.user._id } }, { new: true })
+  .then((card) => {
+    if (!card) {
+      throw new ErrorNotFound(`Карточка не найдена`)
+    } else {
+      next(res.send(card));
+    }
+  })
+  .catch((err) => {
+    if (err.name === "CastError") {
+      next(new ErrorValidation(`Переданные данные некорректны`));
+    } else {
+      next(err);
+    }
+  })
 };
+
 
 // Функция для удаления лайка с карточки
 const removeCardLike = (cardId, userId) => {
-  return Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
-    .orFail(() => new Error('Карточка не найдена'));
+  Card.findByIdAndUpdate(req.params.cardId, { $pull: { likes: req.user._id } }, { new: true })
+  .then((card) => {
+    if (!card) {
+      throw new ErrorNotFound(`Карточка не найдена`)
+    } else {
+      next(res.send(card));
+    }
+  })
+  .catch((err) => {
+    if (err.name === "CastError") {
+      next(new ErrorValidation(`Переданные данные некорректны`));
+    } else {
+      next(err);
+    }
+  })
 };
-
 // Контроллер для получения всех карточек
 const getCards = (req, res, next) => {
   Card.find({})
@@ -61,31 +82,10 @@ const getCards = (req, res, next) => {
     .catch(next);
 };
 
-// Контроллер для создания новой карточки
-const createCardController = handleCardOperation((cardId, userId) => {
-  const { name, link } = req.body;
-  return createCard(name, link, userId);
-});
-
-// Контроллер для удаления карточки по ID
-const removeCardByIdController = handleCardOperation((cardId, userId) => {
-  return removeCardById(cardId, userId);
-});
-
-// Контроллер для установки лайка на карточке
-const putCardLikeController = handleCardOperation((cardId, userId) => {
-  return putCardLike(cardId, userId);
-});
-
-// Контроллер для удаления лайка с карточки
-const removeCardLikeController = handleCardOperation((cardId, userId) => {
-  return removeCardLike(cardId, userId);
-});
-
 module.exports = {
   getCards,
-  createCard: createCardController,
-  removeCardById: removeCardByIdController,
-  putCardLike: putCardLikeController,
-  removeCardLike: removeCardLikeController,
+  createCard,
+  removeCardById,
+  putCardLike,
+  removeCardLike,
 };
