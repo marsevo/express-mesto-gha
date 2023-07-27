@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const router = require('./routes');
 const errorsHandler = require('./middlewares/errorsHandler');
 
- const { PORT = 3003 } = process.env;
+ const { PORT = 3000 } = process.env;
 
  const app = express();
  app.use(express.json());
