@@ -1,79 +1,91 @@
-const { ERROR_VALIDATION, ERROR_NOT_FOUND, ERROR_DEFAULT } = require('../errors/errors');
+const ErrorValidation = require('../errors/errorValidation');
+const ErrorNotFound = require('../errors/errorNotFound');
+const ErrorForbidden = require('../errors/errorForbidden.js');
 const Card = require('../models/card');
 
-// Общая логика для обработки ошибок при выполнении операций с карточками
-const handleCardOperation = (req, res, operation) => {
+// Функция для обработки операций с карточками
+const handleCardOperation = (operation) => (req, res, next) => {
   const { cardId } = req.params;
-  operation(cardId)
-    .then((card) => {
-      res.send(card);
-    })
+  const { _id: userId } = req.user;
+  operation(cardId, userId)
+    .then((card) => res.send(card))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(ERROR_VALIDATION).send({ message: 'Переданные данные некорректны' });
-      } else if (err.message === 'Not Found') {
-        res.status(ERROR_NOT_FOUND).send({ message: 'Карточка не найдена' });
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
+        next(new ErrorValidation(`Переданные данные некорректны`));
+      } else if (err.name === 'NotFoundError') {
+        next(new ErrorNotFound(err.message));
+      } else if (err.name === 'ForbiddenError') {
+        next(new ErrorForbidden(err.message));
       } else {
-        res.status(ERROR_DEFAULT).send({ message: 'Произошла неизвестная ошибка', err: err.message });
+        next(err);
       }
     });
+};
+
+// Функция для создания новой карточки
+const createCard = (name, link, owner) => {
+  return Card.create({ name, link, owner });
+};
+
+// Функция для удаления карточки по ID
+const removeCardById = (cardId, userId) => {
+  return Card.findById(cardId)
+    .orFail(() => new Error('Карточка для удаления не найдена'))
+    .then((card) => {
+      if (card.owner.toString() === userId) {
+        return card.deleteOne();
+      } else {
+        throw new Error('Чужую карточку удалить нельзя');
+      }
+    });
+};
+
+// Функция для установки лайка на карточке
+const putCardLike = (cardId, userId) => {
+  return Card.findByIdAndUpdate(cardId, { $addToSet: { likes: userId } }, { new: true })
+    .orFail(() => new Error('Карточка не найдена'));
+};
+
+// Функция для удаления лайка с карточки
+const removeCardLike = (cardId, userId) => {
+  return Card.findByIdAndUpdate(cardId, { $pull: { likes: userId } }, { new: true })
+    .orFail(() => new Error('Карточка не найдена'));
 };
 
 // Контроллер для получения всех карточек
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
-    .populate('owner')
     .then((cards) => {
       res.send(cards);
     })
-    .catch((err) => {
-      res.status(ERROR_DEFAULT).send({ message: 'Произошла неизвестная ошибка', err: err.message });
-    });
+    .catch(next);
 };
 
 // Контроллер для создания новой карточки
-const createCard = (req, res) => {
-  const ownerId = req.user._id;
+const createCardController = handleCardOperation((cardId, userId) => {
   const { name, link } = req.body;
-  Card.create({ name, link, owner: ownerId })
-    .then((card) => {
-      res.send(card);
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(ERROR_VALIDATION).send({ message: 'Переданные данные некорректны' });
-      } else {
-        res.status(ERROR_DEFAULT).send({ message: 'Произошла неизвестная ошибка', err: err.message });
-      }
-    });
-};
+  return createCard(name, link, userId);
+});
 
 // Контроллер для удаления карточки по ID
-const removeCardById = (req, res) => {
-  handleCardOperation(req, res, (cardId) =>
-  Card.findByIdAndRemove(cardId).orFail(() => new Error('Not Found')));
-};
+const removeCardByIdController = handleCardOperation((cardId, userId) => {
+  return removeCardById(cardId, userId);
+});
 
 // Контроллер для установки лайка на карточке
-const putCardLike = (req, res) => {
-  handleCardOperation(req, res, (cardId) =>
-    Card.findByIdAndUpdate(cardId, { $addToSet: { likes: req.user._id } }, { new: true })
-    .orFail(() => new Error('Not Found'))
-  );
-};
+const putCardLikeController = handleCardOperation((cardId, userId) => {
+  return putCardLike(cardId, userId);
+});
 
 // Контроллер для удаления лайка с карточки
-const removeCardLike = (req, res) => {
-  handleCardOperation(req, res, (cardId) =>
-    Card.findByIdAndUpdate(cardId, { $pull: { likes: req.user._id } }, { new: true })
-    .orFail(() => new Error('Not Found'))
-  );
-};
+const removeCardLikeController = handleCardOperation((cardId, userId) => {
+  return removeCardLike(cardId, userId);
+});
 
 module.exports = {
   getCards,
-  createCard,
-  removeCardById,
-  putCardLike,
-  removeCardLike,
+  createCard: createCardController,
+  removeCardById: removeCardByIdController,
+  putCardLike: putCardLikeController,
+  removeCardLike: removeCardLikeController,
 };

@@ -1,23 +1,30 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const router = require('./routes');
-const { ERROR_NOT_FOUND } = require('./errors/errors');
+const { errors } = require('celebrate');
+const cookieParser = require('cookie-parser');
 
- const { PORT = 3000 } = process.env;
+const router = require('./routes');
+const errorsHandler = require('./middlewares/errorsHandler');
+
+ const { PORT = 3003 } = process.env;
 
  const app = express();
  app.use(express.json());
+ app.use(cookieParser());
 
  /**временное решение авторизации */
 
- app.use((req, res, next) => {
-  req.user = {
-    _id: '64aed3396545bebab401013f' // вставьте сюда _id созданного в предыдущем пункте пользователя
-  };
-  next();
-});
+//  app.use((req, res, next) => {
+//   req.user = {
+//     _id: '64aed3396545bebab401013f' // вставьте сюда _id созданного в предыдущем пункте пользователя
+//   };
+//   next();
+// });
 
  app.use(router);
+ app.use(errors());
+ app.use(errorsHandler);
+
  app.use('/', (req, res) => {
   res.status(ERROR_NOT_FOUND).send({ message: 'Что-то пошло не так...'});
   });
