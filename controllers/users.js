@@ -27,6 +27,7 @@ const createUser = (req, res, next) => {
     .then((hashedPassword) => User.create({ name, about, avatar, email, password: hashedPassword }))
     .then((user) => res.send(user.toJSON()))
     .catch((err) => {
+      console.log("OSHIBKA: ", err); // Вывод информации об ошибке в консоль
       if (err.name === 'ValidationError') {
         next(new ErrorValidation(`Переданные данные некорректны`));
       } else if (err.code === 11000) {
