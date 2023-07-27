@@ -6,19 +6,6 @@ const User = require('../models/user');
 const jsonWebToken = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-// Функция для обработки обновления данных пользователя
-const updateUser = (updateData) => (req, res, next) => {
-  const { _id } = req.user;
-  User.findByIdAndUpdate(_id, updateData, { new: true, runValidators: true })
-    .then((user) => res.send(user))
-    .catch((err) => {
-      if (err.name === "ValidationError") {
-        next(new ErrorValidation(`Переданные данные некорректны`));
-      } else {
-        next(err);
-      }
-    });
-};
 
 // Функция для обработки создания нового пользователя
 const createUser = (req, res, next) => {
@@ -27,14 +14,14 @@ const createUser = (req, res, next) => {
     .then((hashedPassword) => User.create({ name, about, avatar, email, password: hashedPassword }))
     .then((user) => res.send(user.toJSON()))
     .catch((err) => {
-      console.log("OSHIBKA: ", err); // Вывод информации об ошибке в консоль
-      if (err.name === 'ValidationError') {
+      if (err.name === "ValidationError") {
         next(new ErrorValidation(`Переданные данные некорректны`));
       } else if (err.code === 11000) {
         next(new ErrorConflict(`Такой e-mail уже зарегистрирован`));
       }
       next(err);
-    });
+    }
+    );
 };
 
 // Функция для обработки запроса всех пользователей
@@ -96,17 +83,35 @@ const getUserInfo = (req, res, next) => {
     .catch((err) => next(err));
 };
 
-// Контроллер для обновления профиля пользователя
-const updateUserProfile = updateUser((req) => {
+// Функция для обновления профиля пользователя
+const updateUserProfile = (req, res, next) => {
   const { name, about } = req.body;
-  return { name, about };
-});
+  const { _id } = req.user;
+  User.findByIdAndUpdate(_id, { name, about }, { new: true, runValidators: true })
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        next(new ErrorValidation(`Переданные данные некорректны`));
+      } else {
+        next(new ErrorDefault(`На сервере произошла ошибка`));
+      }
+    })
+};
 
-// Контроллер для обновления аватара пользователя
-const updateUserAvatar = updateUser((req) => {
+// Функция для обновления аватара пользователя
+const updateUserAvatar = (req, res) => {
   const { avatar } = req.body;
-  return { avatar };
-});
+  const { _id } = req.user;
+  User.findByIdAndUpdate(_id, { avatar }, { new: true, runValidators: true })
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        next(new ErrorValidation(`Переданные данные некорректны`));
+      } else {
+        next(new ErrorDefault(`На сервере произошла ошибка`));
+      }
+    })
+}
 
 module.exports = {
   getUsers,
