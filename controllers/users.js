@@ -2,6 +2,7 @@ const ErrorValidation = require('../errors/errorValidation');
 const ErrorConflict = require('../errors/errorConflict');
 const ErrorNotFound = require('../errors/errorNotFound');
 const ErrorAuth = require('../errors/errorAuth');
+
 const User = require('../models/user');
 const jsonWebToken = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
