@@ -1,5 +1,5 @@
-const ErrorAuth = require('../errors/errorAuth');
 const jwt = require('jsonwebtoken');
+const ErrorAuth = require('../errors/errorAuth');
 
 const auth = (req, res, next) => {
   let token;
@@ -17,5 +17,5 @@ const auth = (req, res, next) => {
   }
   req.user = payload;
   next();
-}
+};
 module.exports = auth;

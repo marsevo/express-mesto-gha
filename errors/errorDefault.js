@@ -1,4 +1,4 @@
-const { ERROR_DEFAULT } = require('./errors')
+const { ERROR_DEFAULT } = require('./errors');
 
 class ErrorDefault extends Error {
   constructor(message) {

@@ -1,32 +1,36 @@
+const bcrypt = require('bcryptjs');
+const jsonWebToken = require('jsonwebtoken');
+
 const ErrorValidation = require('../errors/errorValidation');
 const ErrorConflict = require('../errors/errorConflict');
 const ErrorNotFound = require('../errors/errorNotFound');
 const ErrorAuth = require('../errors/errorAuth');
 
 const User = require('../models/user');
-const jsonWebToken = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 
 // Функция для обработки ошибок при работе с пользователями
 const handleUserError = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return next(new ErrorValidation('Переданные данные некорректны'));
-  } else if (err.name === 'CastError') {
+  } if (err.name === 'CastError') {
     return next(new ErrorValidation('Переданные данные некорректны'));
-  } else if (err.name === 'DocumentNotFoundError') {
+  } if (err.name === 'DocumentNotFoundError') {
     return next(new ErrorNotFound('Пользователь не найден'));
-  } else if (err.code === 11000) {
+  } if (err.code === 11000) {
     return next(new ErrorConflict('Такой e-mail уже зарегистрирован'));
-  } else {
-    return next(err);
   }
+  return next(err);
 };
 
 // Функция для обработки создания нового пользователя
 const createUser = (req, res, next) => {
-  const { name, about, avatar, email, password } = req.body;
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
   bcrypt.hash(password, 10)
-    .then((hashedPassword) => User.create({ name, about, avatar, email, password: hashedPassword }))
+    .then((hashedPassword) => User.create({
+      name, about, avatar, email, password: hashedPassword,
+    }))
     .then((user) => res.send(user.toJSON()))
     .catch((err) => handleUserError(err, req, res, next));
 };
@@ -53,28 +57,29 @@ const getUserById = (req, res, next) => {
 };
 
 // Функция для обработки входа пользователя
-const login = (req, res, next) => {
-  const { email, password } = req.body;
-  User.findOne({ email })
-    .select('+password')
-    .orFail(() => new ErrorAuth('Пользователь не найден'))
-    .then((user) => {
-      bcrypt.compare(password, user.password)
-        .then((isValidUser) => {
-          if (isValidUser) {
-            const jwt = jsonWebToken.sign({ _id: user._id }, 'SECRET');
-            res.cookie('jwt', jwt, {
-              maxAge: 360000,
-              httpOnly: true,
-              sameSite: true,
-            });
-            res.send(user);
-          } else {
-            throw new ErrorAuth('Неправильный пароль');
-          }
-        });
-    })
-    .catch(next);
+const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email }).select('+password').orFail(() => new ErrorAuth('Пользователь не найден'));
+    const isValidUser = await bcrypt.compare(password, user.password);
+    if (isValidUser) {
+      const jwt = jsonWebToken.sign({ _id: user._id }, 'SECRET');
+      res.cookie('jwt', jwt, {
+        maxAge: 360000,
+        httpOnly: true,
+        sameSite: true,
+      });
+      res.send(user);
+    } else {
+      throw new ErrorAuth('Неправильный пароль');
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+const logout = (req, res) => {
+  res.clearCookie('jwt').send({ message: 'Вы вышли из аккаунта' });
 };
 
 // Функция для обработки запроса информации о пользователе по ID
@@ -95,7 +100,7 @@ const updateUserProfile = (req, res, next) => {
 };
 
 // Функция для обновления аватара пользователя
-const updateUserAvatar = (req, res) => {
+const updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
   const { _id } = req.user;
   User.findByIdAndUpdate(_id, { avatar }, { new: true, runValidators: true })
@@ -110,5 +115,6 @@ module.exports = {
   updateUserProfile,
   updateUserAvatar,
   login,
+  logout,
   getUserInfo,
 };

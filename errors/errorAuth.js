@@ -1,4 +1,4 @@
-const { ERROR_AUTH } = require('./errors')
+const { ERROR_AUTH } = require('./errors');
 
 class ErrorAuth extends Error {
   constructor(message) {

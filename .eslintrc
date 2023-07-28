@@ -1,11 +1,19 @@
 {
   "extends": "airbnb-base",
-  "no-underscore-dangle": [
+  "rules": {
+    "no-underscore-dangle": [
+      "error",
+      {
+        "allow": [
+          "_id"
+        ]
+      }
+    ]
+  },
+  "import/no-extraneous-dependencies": [
     "error",
     {
-      "allow": [
-        "_id"
-      ]
+      "dependencies": false
     }
   ]
 }

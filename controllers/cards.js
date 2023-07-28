@@ -1,19 +1,18 @@
 const ErrorValidation = require('../errors/errorValidation');
 const ErrorNotFound = require('../errors/errorNotFound');
-const ErrorForbidden = require('../errors/errorForbidden.js');
+const ErrorForbidden = require('../errors/errorForbidden');
 const Card = require('../models/card');
 
 // Функция для обработки ошибок при работе с карточками
 const handleCardError = (err, req, res, next) => {
   if (err.name === 'ValidationError') {
     return next(new ErrorValidation('Переданные данные некорректны'));
-  } else if (err.name === 'CastError') {
+  } if (err.name === 'CastError') {
     return next(new ErrorValidation('Переданные данные некорректны'));
-  } else if (err.name === 'DocumentNotFoundError') {
+  } if (err.name === 'DocumentNotFoundError') {
     return next(new ErrorNotFound('Карточка не найдена'));
-  } else {
-    return next(err);
   }
+  return next(err);
 };
 
 // Функция для создания новой карточки
@@ -28,7 +27,7 @@ const createCard = (req, res, next) => {
 // Функция для удаления карточки по ID
 const removeCardById = (req, res, next) => {
   const { cardId } = req.params;
-  Card.findByIdAndRemove(cardId)
+  Card.findById(cardId)
     .orFail(() => new ErrorNotFound('Карточка для удаления не найдена'))
     .then((card) => {
       if (card.owner.toString() === req.user._id) {

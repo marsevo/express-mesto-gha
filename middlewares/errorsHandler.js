@@ -1,4 +1,4 @@
-const { ERROR_DEFAULT } = require('../errors/errors')
+const { ERROR_DEFAULT } = require('../errors/errors');
 
 const errorsHandler = (err, req, res, next) => {
   const { statusCode = ERROR_DEFAULT } = err;
