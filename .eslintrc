@@ -8,12 +8,7 @@
           "_id"
         ]
       }
-    ]
-  },
-  "import/no-extraneous-dependencies": [
-    "error",
-    {
-      "dependencies": false
-    }
-  ]
+    ],
+    "import/no-extraneous-dependencies": 0
+  }
 }
